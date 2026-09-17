@@ -1,75 +1,90 @@
-# Nuxt Minimal Starter
+# Coperto Stop List
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Панель управления стоп-листом меню для менеджера ресторана.
 
-## Setup
+Решение адаптировано под Vue-стек и реализовано на Nuxt 4 / Vue 3.
 
-Make sure to install dependencies:
+## Stack
+
+- Nuxt 4
+- Vue 3
+- TypeScript
+- Pinia
+- TanStack Vue Query
+- Tailwind CSS
+- VeeValidate
+- Zod
+- VueUse Motion
+
+## Local setup
 
 ```bash
-# npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+Приложение будет доступно по адресу:
 
-Build the application for production:
+```text
+http://localhost:3000
+```
+
+## Checks
 
 ```bash
-# npm
+npm run lint
+npm run typecheck
 npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+## Architecture
 
-```bash
-# npm
-npm run preview
+Код разделён на клиентский UI, бизнес-логику, серверные route handlers и общие типы.
 
-# pnpm
-pnpm preview
+TanStack Vue Query используется для серверного состояния меню, кэширования и optimistic updates.
 
-# yarn
-yarn preview
+Pinia хранит только UI-состояние: выбранную позицию, состояние панели и toast-уведомления. Серверные данные в Pinia не дублируются.
 
-# bun
-bun run preview
+Общие TypeScript-типы и Zod-схема находятся в `shared` и переиспользуются клиентом и сервером.
+
+## Filters
+
+Фильтры по цеху и статусу синхронизированы с query-параметрами URL.
+
+Например:
+
+```text
+?shop=bar&status=stopped
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Поэтому фильтры сохраняются после перезагрузки страницы и корректно работают с Back / Forward браузера.
+
+## Optimistic updates
+
+При постановке позиции в стоп-лист или снятии со стопа интерфейс обновляется сразу.
+
+Перед мутацией сохраняется предыдущее состояние кэша. Если сервер возвращает ошибку, данные откатываются к предыдущему состоянию, а пользователь получает toast с текстом ошибки.
+
+## Validation
+
+Одна Zod-схема используется как на клиенте, так и в server route handler.
+
+Проверяется:
+
+- обязательная причина стопа;
+- срок только в будущем;
+- максимум 24 часа;
+- шаг времени 15 минут.
+
+## Mock API
+
+Nuxt server routes используются как mock backend.
+
+Данные хранятся в памяти серверного процесса, поэтому после перезапуска сервера или нового serverless-инстанса изменения могут сбрасываться. Для тестового задания это ожидаемое поведение.
+
+## What I would improve with more time
+
+- добавить unit-тесты для optimistic update и rollback;
+- добавить полноценный focus trap для боковой панели;
+- покрыть основные пользовательские сценарии e2e-тестами;
+- вынести больше базовых UI-компонентов в отдельный shared UI слой.
