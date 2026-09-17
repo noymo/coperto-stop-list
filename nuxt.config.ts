@@ -1,4 +1,4 @@
-import tailwindcss from '@tailwindcss/vite';
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-17',
@@ -14,4 +14,4 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
   },
-});
+})

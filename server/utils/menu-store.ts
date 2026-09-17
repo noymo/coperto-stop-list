@@ -1,10 +1,10 @@
-import type { MenuItem, StopItemPayload } from '#shared/types/menu';
+import type { MenuItem, StopItemPayload } from '#shared/types/menu'
 
-const now = new Date().toISOString();
+const now = new Date().toISOString()
 
-const inOneHour = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+const inOneHour = new Date(Date.now() + 60 * 60 * 1000).toISOString()
 
-const inTwoHours = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+const inTwoHours = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
 
 const menuItems: MenuItem[] = [
   {
@@ -135,7 +135,7 @@ const menuItems: MenuItem[] = [
     },
     updatedAt: now,
   },
-];
+]
 
 export function getMenuItems(): MenuItem[] {
   return menuItems.map((item) => ({
@@ -143,7 +143,7 @@ export function getMenuItems(): MenuItem[] {
     status: {
       ...item.status,
     },
-  }));
+  }))
 }
 
 function cloneMenuItem(item: MenuItem): MenuItem {
@@ -152,48 +152,45 @@ function cloneMenuItem(item: MenuItem): MenuItem {
     status: {
       ...item.status,
     },
-  };
+  }
 }
 
 export function getMenuItem(id: string): MenuItem | undefined {
-  const item = menuItems.find((menuItem) => menuItem.id === id);
+  const item = menuItems.find((menuItem) => menuItem.id === id)
 
-  return item ? cloneMenuItem(item) : undefined;
+  return item ? cloneMenuItem(item) : undefined
 }
 
-export function stopMenuItem(
-  id: string,
-  payload: StopItemPayload,
-): MenuItem | undefined {
-  const item = menuItems.find((menuItem) => menuItem.id === id);
+export function stopMenuItem(id: string, payload: StopItemPayload): MenuItem | undefined {
+  const item = menuItems.find((menuItem) => menuItem.id === id)
 
   if (!item) {
-    return undefined;
+    return undefined
   }
 
   item.status = {
     kind: 'stopped',
     reason: payload.reason,
     until: payload.until,
-  };
+  }
 
-  item.updatedAt = new Date().toISOString();
+  item.updatedAt = new Date().toISOString()
 
-  return cloneMenuItem(item);
+  return cloneMenuItem(item)
 }
 
 export function resumeMenuItem(id: string): MenuItem | undefined {
-  const item = menuItems.find((menuItem) => menuItem.id === id);
+  const item = menuItems.find((menuItem) => menuItem.id === id)
 
   if (!item) {
-    return undefined;
+    return undefined
   }
 
   item.status = {
     kind: 'available',
-  };
+  }
 
-  item.updatedAt = new Date().toISOString();
+  item.updatedAt = new Date().toISOString()
 
-  return cloneMenuItem(item);
+  return cloneMenuItem(item)
 }

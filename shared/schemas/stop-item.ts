@@ -1,8 +1,6 @@
-import { z } from 'zod';
-import { STOP_REASONS } from '#shared/types/menu';
-
-const MAX_AHEAD_MS = 24 * 60 * 60 * 1000;
-const STEP_MS = 15 * 60 * 1000;
+import { z } from 'zod'
+import { STOP_MAX_DURATION_HOURS, STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES } from '#shared/constants/stop-list'
+import { STOP_REASONS } from '#shared/types/menu'
 
 export const stopItemSchema = z
   .object({
@@ -16,20 +14,21 @@ export const stopItemSchema = z
   })
   .superRefine(({ until }, context) => {
     if (until === null) {
-      return;
+      return
     }
 
-    const timestamp = Date.parse(until);
-    const now = Date.now();
+    const timestamp = Date.parse(until)
+
+    const now = Date.now()
 
     if (Number.isNaN(timestamp)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['until'],
         message: 'Некорректное время',
-      });
+      })
 
-      return;
+      return
     }
 
     if (timestamp <= now) {
@@ -37,26 +36,28 @@ export const stopItemSchema = z
         code: z.ZodIssueCode.custom,
         path: ['until'],
         message: 'Время должно быть в будущем',
-      });
+      })
 
-      return;
+      return
     }
 
-    if (timestamp - now > MAX_AHEAD_MS) {
+    if (timestamp - now > STOP_MAX_DURATION_MS) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['until'],
-        message: 'Не больше чем на 24 часа вперёд',
-      });
+        message: `Не больше чем на ${STOP_MAX_DURATION_HOURS} часа вперёд`,
+      })
 
-      return;
+      return
     }
 
-    if (timestamp % STEP_MS !== 0) {
+    const date = new Date(timestamp)
+
+    if (date.getMinutes() % STOP_TIME_STEP_MINUTES !== 0 || date.getSeconds() !== 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['until'],
-        message: 'Шаг времени — 15 минут',
-      });
+        message: `Шаг времени — ${STOP_TIME_STEP_MINUTES} минут`,
+      })
     }
-  });
+  })

@@ -1,146 +1,162 @@
 <script setup lang="ts">
-import { useForm } from 'vee-validate';
-import { toTypedSchema } from '@vee-validate/zod';
+import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
+import type { MenuItem, StopItemPayload, StopReason } from '#shared/types/menu'
+import { STOP_REASON_OPTIONS } from '../model/presentation'
+import { STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES, STOP_TIME_STEP_SECONDS } from '#shared/constants/stop-list'
+import { stopItemSchema } from '#shared/schemas/stop-item'
+import AppButton from '~/shared/ui/AppButton.vue'
+import AppSelect from '~/shared/ui/AppSelect.vue'
 
-import type { MenuItem, StopItemPayload } from '#shared/types/menu';
-
-import { stopItemSchema } from '#shared/schemas/stop-item';
+interface IAppSelectExpose {
+  focus: () => void
+}
 
 const props = defineProps<{
-  item: MenuItem | null;
-  open: boolean;
-  pending: boolean;
-}>();
+  item: MenuItem | null
+  open: boolean
+  pending: boolean
+}>()
 
 const emit = defineEmits<{
-  close: [];
-  submit: [payload: StopItemPayload];
-}>();
+  close: []
+  submit: [payload: StopItemPayload]
+}>()
 
-const validationSchema = toTypedSchema(stopItemSchema);
+const validationSchema = toTypedSchema(stopItemSchema)
 
-const { errors, defineField, handleSubmit, resetForm, setFieldValue } = useForm(
-  {
-    validationSchema,
-    initialValues: {
-      reason: undefined,
-      until: null,
-    },
+const { errors, defineField, handleSubmit, resetForm, setFieldValue } = useForm({
+  validationSchema,
+
+  initialValues: {
+    reason: undefined,
+    until: null,
   },
-);
+})
 
 const [reason, reasonAttrs] = defineField('reason', {
   validateOnBlur: true,
   validateOnModelUpdate: false,
-});
+})
 
 const [until, untilAttrs] = defineField('until', {
   validateOnBlur: true,
   validateOnModelUpdate: false,
-});
+})
 
-const reasonSelect = ref<HTMLSelectElement | null>(null);
+const reasonSelect = ref<IAppSelectExpose | null>(null)
+
+const openedAt = ref(Date.now())
 
 function toLocalDateTime(iso: string): string {
-  const date = new Date(iso);
-  const offset = date.getTimezoneOffset() * 60_000;
+  const date = new Date(iso)
 
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  const offset = date.getTimezoneOffset() * 60_000
+
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-function getNextQuarter(): string {
-  const date = new Date();
+const minStopTime = computed(() => {
+  const date = new Date(openedAt.value)
 
-  date.setSeconds(0, 0);
+  date.setSeconds(0, 0)
 
-  const minutes = date.getMinutes();
+  const remainder = date.getMinutes() % STOP_TIME_STEP_MINUTES
 
-  date.setMinutes(Math.ceil((minutes + 1) / 15) * 15);
+  const minutesToAdd = remainder === 0 ? STOP_TIME_STEP_MINUTES : STOP_TIME_STEP_MINUTES - remainder
 
-  const offset = date.getTimezoneOffset() * 60_000;
+  date.setMinutes(date.getMinutes() + minutesToAdd)
 
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-}
+  return toLocalDateTime(date.toISOString())
+})
 
-function getMaxTime(): string {
-  const date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+const maxStopTime = computed(() => {
+  const date = new Date(openedAt.value + STOP_MAX_DURATION_MS)
 
-  return toLocalDateTime(date.toISOString());
+  return toLocalDateTime(date.toISOString())
+})
+
+const isSpecificTime = computed(() => until.value !== null)
+
+function handleReasonChange(value: string | null): void {
+  setFieldValue('reason', value === null ? undefined : (value as StopReason))
 }
 
 function setUntilMode(mode: 'shift' | 'time'): void {
   if (mode === 'shift') {
-    setFieldValue('until', null);
-    return;
+    setFieldValue('until', null)
+
+    return
   }
 
   if (until.value === null) {
-    setFieldValue('until', getNextQuarter());
+    setFieldValue('until', minStopTime.value)
   }
 }
-
-const isSpecificTime = computed(() => until.value !== null);
 
 const submitForm = handleSubmit((values) => {
   const payload: StopItemPayload = {
     reason: values.reason,
-    until: values.until === null ? null : new Date(values.until).toISOString(),
-  };
 
-  emit('submit', payload);
-});
+    until: values.until === null ? null : new Date(values.until).toISOString(),
+  }
+
+  emit('submit', payload)
+})
 
 function handleEscape(event: KeyboardEvent): void {
   if (event.key === 'Escape' && props.open && !props.pending) {
-    emit('close');
+    emit('close')
   }
 }
 
 watch(
-  () => [props.open, props.item] as const,
-  async ([open, item]) => {
-    if (!open || !item) {
-      return;
+  () => [props.open, props.item?.id] as const,
+
+  async ([open, itemId]) => {
+    const item = props.item
+
+    if (!open || !itemId || !item) {
+      return
     }
+
+    openedAt.value = Date.now()
 
     if (item.status.kind === 'stopped') {
       resetForm({
         values: {
           reason: item.status.reason,
+
           until: item.status.until ? toLocalDateTime(item.status.until) : null,
         },
-      });
+      })
     } else {
       resetForm({
         values: {
           reason: undefined,
           until: null,
         },
-      });
+      })
     }
 
-    await nextTick();
+    await nextTick()
 
-    reasonSelect.value?.focus();
+    reasonSelect.value?.focus()
   },
-);
+)
 
 onMounted(() => {
-  window.addEventListener('keydown', handleEscape);
-});
+  window.addEventListener('keydown', handleEscape)
+})
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleEscape);
-});
+  window.removeEventListener('keydown', handleEscape)
+})
 </script>
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open && item"
-      class="fixed inset-0 z-40 bg-black/30"
-      @click.self="!pending && $emit('close')"
-    >
+    <div v-if="open && item" class="fixed inset-0 z-40 bg-black/30" @click.self="!pending && $emit('close')">
       <div
         v-motion
         :initial="{
@@ -158,16 +174,12 @@ onUnmounted(() => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="stop-panel-title"
-        class="ml-auto flex h-full w-full max-w-md flex-col bg-[#F6F3EE] p-6 shadow-xl"
+        class="ml-auto flex h-full w-full max-w-md flex-col bg-app-bg p-6 shadow-xl"
       >
         <div class="flex items-start justify-between gap-4">
           <div>
             <h2 id="stop-panel-title" class="text-xl font-semibold">
-              {{
-                item.status.kind === 'stopped'
-                  ? 'Изменить стоп'
-                  : 'Поставить в стоп'
-              }}
+              {{ item.status.kind === 'stopped' ? 'Изменить стоп' : 'Поставить в стоп' }}
             </h2>
 
             <p class="mt-1 block text-sm text-red-600">
@@ -175,40 +187,34 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <button
-            type="button"
+          <AppButton
+            variant="ghost"
+            size="icon"
             aria-label="Закрыть панель"
             :disabled="pending"
-            class="text-2xl text-neutral-500 disabled:opacity-40"
             @click="$emit('close')"
           >
             ×
-          </button>
+          </AppButton>
         </div>
 
         <form class="mt-8 flex flex-1 flex-col" @submit.prevent="submitForm">
           <label>
             <span class="text-sm font-medium"> Причина </span>
 
-            <select
+            <AppSelect
               ref="reasonSelect"
-              v-model="reason"
               v-bind="reasonAttrs"
-              class="mt-2 w-full rounded-lg border bg-white px-3 py-2"
-              :class="errors.reason ? 'border-red-500' : 'border-neutral-300'"
-            >
-              <option :value="undefined" disabled>Выберите причину</option>
+              :model-value="reason ?? null"
+              :options="STOP_REASON_OPTIONS"
+              placeholder="Выберите причину"
+              placeholder-disabled
+              :invalid="Boolean(errors.reason)"
+              class="mt-2"
+              @update:model-value="handleReasonChange"
+            />
 
-              <option value="out_of_stock">Закончились продукты</option>
-
-              <option value="equipment">Сломалось оборудование</option>
-
-              <option value="quality">Вопросы к качеству</option>
-
-              <option value="menu_change">Позиция выведена из меню</option>
-            </select>
-
-            <span v-if="errors.reason" class="mt-1 text-sm text-red-600">
+            <span v-if="errors.reason" class="mt-1 block text-sm text-red-600">
               {{ errors.reason }}
             </span>
           </label>
@@ -217,23 +223,13 @@ onUnmounted(() => {
             <legend class="text-sm font-medium">Срок стопа</legend>
 
             <label class="mt-3 flex items-center gap-2">
-              <input
-                type="radio"
-                name="until-mode"
-                :checked="!isSpecificTime"
-                @change="setUntilMode('shift')"
-              >
+              <input type="radio" name="until-mode" :checked="!isSpecificTime" @change="setUntilMode('shift')" />
 
               До конца смены
             </label>
 
             <label class="mt-3 flex items-center gap-2">
-              <input
-                type="radio"
-                name="until-mode"
-                :checked="isSpecificTime"
-                @change="setUntilMode('time')"
-              >
+              <input type="radio" name="until-mode" :checked="isSpecificTime" @change="setUntilMode('time')" />
 
               До конкретного времени
             </label>
@@ -243,30 +239,25 @@ onUnmounted(() => {
               v-model="until"
               v-bind="untilAttrs"
               type="datetime-local"
-              step="900"
-              :min="getNextQuarter()"
-              :max="getMaxTime()"
-              class="mt-3 w-full rounded-lg border bg-white px-3 py-2"
-              :class="errors.until ? 'border-red-500' : 'border-neutral-300'"
-            >
+              :step="STOP_TIME_STEP_SECONDS"
+              :min="minStopTime"
+              :max="maxStopTime"
+              :class="[
+                'mt-3 w-full rounded-lg border bg-white px-3 py-2',
+                'focus:border-brand focus:outline-none',
+                'focus:ring-2 focus:ring-brand/20',
+                errors.until ? 'border-red-500' : 'border-neutral-300',
+              ]"
+            />
 
-            <span v-if="errors.until" class="mt-1 text-sm text-red-600">
+            <span v-if="errors.until" class="mt-1 block text-sm text-red-600">
               {{ errors.until }}
             </span>
           </fieldset>
 
-          <button
-            type="submit"
-            :disabled="pending"
-            class="mt-auto flex items-center justify-center gap-2 rounded-lg bg-[#C6462F] px-4 py-3 font-medium text-white disabled:opacity-60"
-          >
-            <span
-              v-if="pending"
-              class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-            />
-
+          <AppButton type="submit" size="lg" class="mt-auto w-full" :loading="pending">
             {{ pending ? 'Сохраняем...' : 'Сохранить' }}
-          </button>
+          </AppButton>
         </form>
       </div>
     </div>

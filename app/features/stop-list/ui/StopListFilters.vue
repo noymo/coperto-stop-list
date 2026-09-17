@@ -1,70 +1,51 @@
 <script setup lang="ts">
-import type { Shop } from '#shared/types/menu';
-import type { MenuFilters, StatusFilter } from '../model/filters';
+import type { Shop } from '#shared/types/menu'
+import type { MenuFilters, StatusFilter } from '../model/filters'
+import { SHOP_OPTIONS, STATUS_OPTIONS } from '../model/presentation'
+import AppSelect from '~/shared/ui/AppSelect.vue'
 
 defineProps<{
-  filters: MenuFilters;
-}>();
+  filters: MenuFilters
+}>()
 
 const emit = defineEmits<{
-  shopChange: [value: Shop | null];
-  statusChange: [value: StatusFilter];
-}>();
+  shopChange: [value: Shop | null]
+  statusChange: [value: StatusFilter]
+}>()
 
-function handleShopChange(event: Event) {
-  const select = event.target as HTMLSelectElement;
-
-  const value = select.value;
-
-  emit('shopChange', value === '' ? null : (value as Shop));
+function handleShopChange(value: string | null): void {
+  emit('shopChange', value as Shop | null)
 }
 
-function handleStatusChange(event: Event) {
-  const select = event.target as HTMLSelectElement;
-
-  const value = select.value;
-
-  emit(
-    'statusChange',
-    value === '' ? null : (value as Exclude<StatusFilter, null>),
-  );
+function handleStatusChange(value: string | null): void {
+  emit('statusChange', value as StatusFilter)
 }
 </script>
 
 <template>
-  <div class="mt-8 flex gap-4">
+  <div class="mt-8 flex flex-wrap gap-4">
     <label class="flex flex-col gap-2">
       <span class="text-sm font-medium"> Цех </span>
 
-      <select
-        :value="filters.shop ?? ''"
-        class="min-w-48 rounded-lg border border-neutral-300 bg-white px-3 py-2"
-        @change="handleShopChange"
-      >
-        <option value="">Все цеха</option>
-
-        <option value="kitchen">Кухня</option>
-
-        <option value="bar">Бар</option>
-
-        <option value="pastry">Кондитерская</option>
-      </select>
+      <AppSelect
+        class="min-w-48"
+        :model-value="filters.shop"
+        :options="SHOP_OPTIONS"
+        placeholder="Все цеха"
+        @update:model-value="handleShopChange"
+      />
     </label>
 
     <label class="flex flex-col gap-2">
       <span class="text-sm font-medium"> Статус </span>
 
-      <select
-        :value="filters.status ?? ''"
-        class="min-w-48 rounded-lg border border-neutral-300 bg-white px-3 py-2"
-        @change="handleStatusChange"
-      >
-        <option value="">Все статусы</option>
-
-        <option value="available">В продаже</option>
-
-        <option value="stopped">В стоп-листе</option>
-      </select>
+      <AppSelect
+        class="min-w-48"
+        :model-value="filters.status"
+        :options="STATUS_OPTIONS"
+        placeholder="Все статусы"
+        @update:model-value="handleStatusChange"
+      />
     </label>
   </div>
 </template>

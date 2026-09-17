@@ -1,8 +1,10 @@
-import type { MenuItemStatus, Shop } from '#shared/types/menu';
+import type { MenuItemStatus, Shop } from '#shared/types/menu'
 
-export type StatusFilter = MenuItemStatus['kind'] | null;
+type TStatusFilter = MenuItemStatus['kind'] | null
 
-export interface MenuFilters {
-  shop: Shop | null;
-  status: StatusFilter;
+interface IMenuFilters {
+  shop: Shop | null
+  status: TStatusFilter
 }
+
+export type { IMenuFilters as MenuFilters, TStatusFilter as StatusFilter }

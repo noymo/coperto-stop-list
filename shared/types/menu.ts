@@ -1,36 +1,41 @@
-export const SHOPS = ['kitchen', 'bar', 'pastry'] as const;
+export const SHOPS = ['kitchen', 'bar', 'pastry'] as const
 
-export type Shop = (typeof SHOPS)[number];
+type TShop = (typeof SHOPS)[number]
 
-export const STOP_REASONS = [
-  'out_of_stock',
-  'equipment',
-  'quality',
-  'menu_change',
-] as const;
+export type { TShop as Shop }
 
-export type StopReason = (typeof STOP_REASONS)[number];
+export const STOP_REASONS = ['out_of_stock', 'equipment', 'quality', 'menu_change'] as const
 
-export type MenuItemStatus =
+type TStopReason = (typeof STOP_REASONS)[number]
+
+export type { TStopReason as StopReason }
+
+type TMenuItemStatus =
   | {
-      kind: 'available';
+      kind: 'available'
     }
   | {
-      kind: 'stopped';
-      reason: StopReason;
-      until: string | null;
-    };
+      kind: 'stopped'
+      reason: TStopReason
+      until: string | null
+    }
 
-export interface MenuItem {
-  id: string;
-  title: string;
-  shop: Shop;
-  stock: number;
-  status: MenuItemStatus;
-  updatedAt: string;
+export type { TMenuItemStatus as MenuItemStatus }
+
+interface IMenuItem {
+  id: string
+  title: string
+  shop: TShop
+  stock: number
+  status: TMenuItemStatus
+  updatedAt: string
 }
 
-export interface StopItemPayload {
-  reason: StopReason;
-  until: string | null;
+export type { IMenuItem as MenuItem }
+
+interface IStopItemPayload {
+  reason: TStopReason
+  until: string | null
 }
+
+export type { IStopItemPayload as StopItemPayload }

@@ -1,40 +1,51 @@
-import { defineStore } from 'pinia';
+import { defineStore } from 'pinia'
 
-export type ToastType = 'success' | 'error';
+export type TToastType = 'success' | 'error'
+
+const TOAST_DURATION_MS = 4000
 
 export const useStopListUiStore = defineStore('stop-list-ui', () => {
-  const selectedItemId = ref<string | null>(null);
+  const selectedItemId = ref<string | null>(null)
 
-  const toastMessage = ref<string | null>(null);
-  const toastType = ref<ToastType>('error');
+  const toastMessage = ref<string | null>(null)
+  const toastType = ref<TToastType>('error')
 
-  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+  let toastTimer: ReturnType<typeof setTimeout> | null = null
 
-  const isPanelOpen = computed(() => selectedItemId.value !== null);
+  const isPanelOpen = computed(() => selectedItemId.value !== null)
 
   function openPanel(id: string): void {
-    selectedItemId.value = id;
+    selectedItemId.value = id
   }
 
   function closePanel(): void {
-    selectedItemId.value = null;
+    selectedItemId.value = null
   }
 
-  function showToast(message: string, type: ToastType = 'error'): void {
-    toastMessage.value = message;
-    toastType.value = type;
-
-    if (toastTimer) {
-      clearTimeout(toastTimer);
+  function clearToastTimer(): void {
+    if (!toastTimer) {
+      return
     }
 
-    toastTimer = setTimeout(() => {
-      toastMessage.value = null;
-    }, 4000);
+    clearTimeout(toastTimer)
+    toastTimer = null
   }
 
   function closeToast(): void {
-    toastMessage.value = null;
+    clearToastTimer()
+    toastMessage.value = null
+  }
+
+  function showToast(message: string, type: TToastType = 'error'): void {
+    clearToastTimer()
+
+    toastMessage.value = message
+    toastType.value = type
+
+    toastTimer = setTimeout(() => {
+      toastMessage.value = null
+      toastTimer = null
+    }, TOAST_DURATION_MS)
   }
 
   return {
@@ -46,5 +57,5 @@ export const useStopListUiStore = defineStore('stop-list-ui', () => {
     closePanel,
     showToast,
     closeToast,
-  };
-});
+  }
+})

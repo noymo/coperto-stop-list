@@ -1,22 +1,23 @@
-import type { MenuItem } from '#shared/types/menu';
-import { getMenuItems } from '#server/utils/menu-store';
+import type { MenuItem } from '#shared/types/menu'
+import { getMenuItems } from '#server/utils/menu-store'
+import { MENU_ITEMS_GET_DELAY_MS } from '#shared/constants/stop-list'
 
 export default defineEventHandler(async (event): Promise<MenuItem[]> => {
   await new Promise((resolve) => {
-    setTimeout(resolve, 500);
-  });
+    setTimeout(resolve, MENU_ITEMS_GET_DELAY_MS)
+  })
 
-  const query = getQuery(event);
+  const query = getQuery(event)
 
-  const shop = typeof query.shop === 'string' ? query.shop : null;
+  const shop = typeof query.shop === 'string' ? query.shop : null
 
-  const status = typeof query.status === 'string' ? query.status : null;
+  const status = typeof query.status === 'string' ? query.status : null
 
   return getMenuItems().filter((item) => {
-    const matchesShop = shop === null || item.shop === shop;
+    const matchesShop = shop === null || item.shop === shop
 
-    const matchesStatus = status === null || item.status.kind === status;
+    const matchesStatus = status === null || item.status.kind === status
 
-    return matchesShop && matchesStatus;
-  });
-});
+    return matchesShop && matchesStatus
+  })
+})
