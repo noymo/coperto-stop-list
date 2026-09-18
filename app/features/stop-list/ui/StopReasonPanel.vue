@@ -163,7 +163,7 @@ onUnmounted(() => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="stop-panel-title"
-        class="ml-auto flex h-full w-full max-w-md flex-col bg-[#F6F3EE] p-6 shadow-xl"
+        class="ml-auto flex h-full w-full max-w-md flex-col bg-app-bg p-6 shadow-xl"
       >
         <div class="flex items-start justify-between gap-4">
           <div>
@@ -171,7 +171,7 @@ onUnmounted(() => {
               {{ item.status.kind === 'stopped' ? 'Изменить стоп' : 'Поставить в стоп' }}
             </h2>
 
-            <p class="mt-1 block text-sm text-[#171512]/60">
+            <p class="mt-1 block text-sm text-app-text/60">
               {{ item.title }}
             </p>
           </div>

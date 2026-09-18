@@ -8,6 +8,7 @@ import { useStopItem } from '~/features/stop-list/model/use-stop-item'
 import StopListFilters from '~/features/stop-list/ui/StopListFilters.vue'
 import StopListTable from '~/features/stop-list/ui/StopListTable.vue'
 import StopReasonPanel from '~/features/stop-list/ui/StopReasonPanel.vue'
+import AppToast from '~/shared/ui/AppToast.vue'
 import { useStopListUiStore } from '~/stores/stop-list-ui'
 
 const uiStore = useStopListUiStore()
@@ -49,13 +50,16 @@ async function handleStop(payload: StopItemPayload): Promise<void> {
     return
   }
 
+  const itemId = selectedItem.value.id
+
+  uiStore.closePanel()
+
   try {
     await stopMutation.mutateAsync({
-      id: selectedItem.value.id,
+      id: itemId,
       payload,
     })
 
-    uiStore.closePanel()
     uiStore.showToast('Изменение сохранено', 'success')
   } catch {
     // Ошибка уже обработана внутри mutation.onError.
@@ -76,7 +80,7 @@ async function handleResume(item: MenuItem): Promise<void> {
 </script>
 
 <template>
-  <main class="min-h-screen bg-[#F6F3EE] p-10 text-[#171512]">
+  <main class="min-h-screen bg-app-bg p-10 text-app-text">
     <div class="mx-auto max-w-6xl">
       <h1 class="text-3xl font-semibold">Стоп-лист кухни</h1>
 
