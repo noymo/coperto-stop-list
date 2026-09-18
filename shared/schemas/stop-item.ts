@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { isStopReason } from '#shared/constants/menu'
-import { STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES } from '#shared/constants/stop-list'
+import { STOP_MAX_DURATION_MS, STOP_TIME_STEP_MS } from '#shared/constants/stop-list'
 import type { StopReason } from '#shared/types/menu'
 
 export const stopItemSchema = z
@@ -48,9 +48,7 @@ export const stopItemSchema = z
       return
     }
 
-    const date = new Date(timestamp)
-
-    if (date.getMinutes() % STOP_TIME_STEP_MINUTES !== 0 || date.getSeconds() !== 0) {
+    if (timestamp % STOP_TIME_STEP_MS !== 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['until'],

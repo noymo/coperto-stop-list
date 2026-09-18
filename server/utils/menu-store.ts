@@ -1,8 +1,10 @@
+import { STOP_TIME_STEP_MS } from '#shared/constants/stop-list'
 import type { MenuItem, StopItemPayload } from '#shared/types/menu'
 
 const now = new Date().toISOString()
 
-const inOneHour = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+const inOneHourTimestamp = Date.now() + 60 * 60 * 1000
+const inOneHour = new Date(Math.ceil(inOneHourTimestamp / STOP_TIME_STEP_MS) * STOP_TIME_STEP_MS).toISOString()
 
 const inTwoHours = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
 

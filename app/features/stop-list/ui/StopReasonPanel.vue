@@ -14,6 +14,7 @@ const props = defineProps<{
   item: MenuItem | null
   open: boolean
   pending: boolean
+  draft?: StopItemPayload | null
 }>()
 
 const emit = defineEmits<{
@@ -103,7 +104,7 @@ function handleEscape(event: KeyboardEvent): void {
 }
 
 watch(
-  () => [props.open, props.item?.id] as const,
+  () => [props.open, props.item?.id, props.draft?.reason, props.draft?.until] as const,
   async ([open, itemId]) => {
     const item = props.item
 
@@ -113,7 +114,14 @@ watch(
 
     openedAt.value = Date.now()
 
-    if (item.status.kind === 'stopped') {
+    if (props.draft) {
+      resetForm({
+        values: {
+          reason: props.draft.reason,
+          until: props.draft.until ? toLocalDateTime(props.draft.until) : null,
+        },
+      })
+    } else if (item.status.kind === 'stopped') {
       resetForm({
         values: {
           reason: item.status.reason,

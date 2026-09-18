@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { MenuItem, StopItemPayload } from '#shared/types/menu'
 import { useMenuItems } from '~/features/stop-list/model/queries'
 import { useMenuFilters } from '~/features/stop-list/model/use-menu-filters'
@@ -19,12 +19,29 @@ const { data: menuItems, isPending, isError, error } = useMenuItems(filters)
 const stopMutation = useStopItem(filters)
 const resumeMutation = useResumeItem(filters)
 
+const retryDraft = ref<{ itemId: string; payload: StopItemPayload } | null>(null)
+const mutationLocked = ref(false)
+
+const isMutating = computed(
+  () => mutationLocked.value || stopMutation.isPending.value || resumeMutation.isPending.value,
+)
+
 const selectedItem = computed<MenuItem | null>(() => {
   if (!uiStore.selectedItemId) {
     return null
   }
 
   return menuItems.value?.find((item) => item.id === uiStore.selectedItemId) ?? null
+})
+
+const selectedDraft = computed<StopItemPayload | null>(() => {
+  const itemId = uiStore.selectedItemId
+
+  if (!itemId || retryDraft.value?.itemId !== itemId) {
+    return null
+  }
+
+  return retryDraft.value.payload
 })
 
 const savingIds = computed<string[]>(() => {
@@ -42,17 +59,30 @@ const savingIds = computed<string[]>(() => {
 })
 
 function openStopPanel(item: MenuItem): void {
+  if (isMutating.value) {
+    return
+  }
+
+  retryDraft.value = null
   uiStore.openPanel(item.id)
 }
 
 async function handleStop(payload: StopItemPayload): Promise<void> {
-  if (!selectedItem.value) {
+  const itemId = selectedItem.value?.id
+
+  if (!itemId || isMutating.value) {
     return
   }
 
-  const itemId = selectedItem.value.id
+  retryDraft.value = {
+    itemId,
+    payload,
+  }
 
+  mutationLocked.value = true
   uiStore.closePanel()
+
+  let shouldReopenPanel = false
 
   try {
     await stopMutation.mutateAsync({
@@ -60,13 +90,26 @@ async function handleStop(payload: StopItemPayload): Promise<void> {
       payload,
     })
 
+    retryDraft.value = null
     uiStore.showToast('Изменение сохранено', 'success')
   } catch {
-    // Ошибка уже обработана внутри mutation.onError.
+    shouldReopenPanel = true
+  } finally {
+    mutationLocked.value = false
+
+    if (shouldReopenPanel) {
+      uiStore.openPanel(itemId)
+    }
   }
 }
 
 async function handleResume(item: MenuItem): Promise<void> {
+  if (isMutating.value) {
+    return
+  }
+
+  mutationLocked.value = true
+
   try {
     await resumeMutation.mutateAsync({
       id: item.id,
@@ -74,13 +117,15 @@ async function handleResume(item: MenuItem): Promise<void> {
 
     uiStore.showToast('Позиция возвращена в продажу', 'success')
   } catch {
-    // Ошибка уже обработана внутри mutation.onError.
+    // Ошибка и откат обрабатываются внутри mutation.onError.
+  } finally {
+    mutationLocked.value = false
   }
 }
 </script>
 
 <template>
-  <main class="min-h-screen bg-app-bg p-10 text-app-text">
+  <main class="min-h-screen bg-app-bg px-4 py-6 sm:px-6 sm:py-8 lg:p-10 text-app-text">
     <div class="mx-auto max-w-6xl">
       <h1 class="text-3xl font-semibold">Стоп-лист кухни</h1>
 
@@ -104,7 +149,8 @@ async function handleResume(item: MenuItem): Promise<void> {
     <StopReasonPanel
       :open="uiStore.isPanelOpen"
       :item="selectedItem"
-      :pending="stopMutation.isPending.value"
+      :draft="selectedDraft"
+      :pending="isMutating"
       @close="uiStore.closePanel"
       @submit="handleStop"
     />

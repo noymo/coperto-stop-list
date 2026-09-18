@@ -24,27 +24,27 @@ function handleStatusChange(value: string | null): void {
 </script>
 
 <template>
-  <div class="mt-8 flex gap-4">
-    <label class="flex flex-col gap-2">
+  <div class="mt-8 flex flex-col gap-4 sm:flex-row">
+    <label class="flex w-full flex-col gap-2 sm:w-auto">
       <span class="text-sm font-medium">Цех</span>
 
       <AppSelect
         :model-value="filters.shop"
         :options="SHOP_OPTIONS"
         placeholder="Все цеха"
-        class="min-w-48"
+        class="w-full min-w-0 sm:min-w-48"
         @update:model-value="handleShopChange"
       />
     </label>
 
-    <label class="flex flex-col gap-2">
+    <label class="flex w-full flex-col gap-2 sm:w-auto">
       <span class="text-sm font-medium">Статус</span>
 
       <AppSelect
         :model-value="filters.status"
         :options="MENU_STATUS_OPTIONS"
         placeholder="Все статусы"
-        class="min-w-48"
+        class="w-full min-w-0 sm:min-w-48"
         @update:model-value="handleStatusChange"
       />
     </label>
