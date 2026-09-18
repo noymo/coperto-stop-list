@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import type { MenuItem } from '#shared/types/menu'
+import { useStopListUiStore } from '~/stores/stop-list-ui'
+import { getApiErrorMessage } from '~/utils/api-error'
 import type { MenuFilters } from './filters'
 import type { Ref } from 'vue'
 import { menuKeys } from './queries'
-import { useStopListUiStore } from '~/stores/stop-list-ui'
-import { getApiErrorMessage } from '~/utils/api-error'
 
 interface IBaseMutationVariables {
   id: string

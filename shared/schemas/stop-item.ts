@@ -1,15 +1,13 @@
 import { z } from 'zod'
-import { STOP_MAX_DURATION_HOURS, STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES } from '#shared/constants/stop-list'
-import { STOP_REASONS } from '#shared/types/menu'
+import { isStopReason } from '#shared/constants/menu'
+import { STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES } from '#shared/constants/stop-list'
+import type { StopReason } from '#shared/types/menu'
 
 export const stopItemSchema = z
   .object({
-    reason: z.enum(STOP_REASONS, {
-      errorMap: () => ({
-        message: 'Выберите причину стопа',
-      }),
+    reason: z.custom<StopReason>(isStopReason, {
+      message: 'Выберите причину стопа',
     }),
-
     until: z.string().nullable(),
   })
   .superRefine(({ until }, context) => {
@@ -18,7 +16,6 @@ export const stopItemSchema = z
     }
 
     const timestamp = Date.parse(until)
-
     const now = Date.now()
 
     if (Number.isNaN(timestamp)) {
@@ -45,7 +42,7 @@ export const stopItemSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['until'],
-        message: `Не больше чем на ${STOP_MAX_DURATION_HOURS} часа вперёд`,
+        message: 'Не больше чем на 24 часа вперёд',
       })
 
       return
@@ -57,7 +54,7 @@ export const stopItemSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['until'],
-        message: `Шаг времени — ${STOP_TIME_STEP_MINUTES} минут`,
+        message: 'Шаг времени - 15 минут',
       })
     }
   })

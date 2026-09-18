@@ -1,6 +1,6 @@
+import { MENU_ITEMS_GET_DELAY_MS } from '#shared/constants/stop-list'
 import type { MenuItem } from '#shared/types/menu'
 import { getMenuItems } from '#server/utils/menu-store'
-import { MENU_ITEMS_GET_DELAY_MS } from '#shared/constants/stop-list'
 
 export default defineEventHandler(async (event): Promise<MenuItem[]> => {
   await new Promise((resolve) => {

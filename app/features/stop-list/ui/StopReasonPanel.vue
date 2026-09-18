@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import type { MenuItem, StopItemPayload, StopReason } from '#shared/types/menu'
-import { STOP_REASON_OPTIONS } from '../model/presentation'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES, STOP_TIME_STEP_SECONDS } from '#shared/constants/stop-list'
 import { stopItemSchema } from '#shared/schemas/stop-item'
-import AppButton from '~/shared/ui/AppButton.vue'
-import AppSelect from '~/shared/ui/AppSelect.vue'
-
-interface IAppSelectExpose {
-  focus: () => void
-}
+import type { MenuItem, StopItemPayload } from '#shared/types/menu'
+import { STOP_REASON_OPTIONS } from '../model/presentation'
 
 const props = defineProps<{
   item: MenuItem | null
@@ -27,7 +22,6 @@ const validationSchema = toTypedSchema(stopItemSchema)
 
 const { errors, defineField, handleSubmit, resetForm, setFieldValue } = useForm({
   validationSchema,
-
   initialValues: {
     reason: undefined,
     until: null,
@@ -44,13 +38,11 @@ const [until, untilAttrs] = defineField('until', {
   validateOnModelUpdate: false,
 })
 
-const reasonSelect = ref<IAppSelectExpose | null>(null)
-
+const reasonSelect = ref<HTMLSelectElement | null>(null)
 const openedAt = ref(Date.now())
 
 function toLocalDateTime(iso: string): string {
   const date = new Date(iso)
-
   const offset = date.getTimezoneOffset() * 60_000
 
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
@@ -62,7 +54,6 @@ const minStopTime = computed(() => {
   date.setSeconds(0, 0)
 
   const remainder = date.getMinutes() % STOP_TIME_STEP_MINUTES
-
   const minutesToAdd = remainder === 0 ? STOP_TIME_STEP_MINUTES : STOP_TIME_STEP_MINUTES - remainder
 
   date.setMinutes(date.getMinutes() + minutesToAdd)
@@ -78,14 +69,9 @@ const maxStopTime = computed(() => {
 
 const isSpecificTime = computed(() => until.value !== null)
 
-function handleReasonChange(value: string | null): void {
-  setFieldValue('reason', value === null ? undefined : (value as StopReason))
-}
-
 function setUntilMode(mode: 'shift' | 'time'): void {
   if (mode === 'shift') {
     setFieldValue('until', null)
-
     return
   }
 
@@ -97,7 +83,6 @@ function setUntilMode(mode: 'shift' | 'time'): void {
 const submitForm = handleSubmit((values) => {
   const payload: StopItemPayload = {
     reason: values.reason,
-
     until: values.until === null ? null : new Date(values.until).toISOString(),
   }
 
@@ -112,7 +97,6 @@ function handleEscape(event: KeyboardEvent): void {
 
 watch(
   () => [props.open, props.item?.id] as const,
-
   async ([open, itemId]) => {
     const item = props.item
 
@@ -126,7 +110,6 @@ watch(
       resetForm({
         values: {
           reason: item.status.reason,
-
           until: item.status.until ? toLocalDateTime(item.status.until) : null,
         },
       })
@@ -140,7 +123,6 @@ watch(
     }
 
     await nextTick()
-
     reasonSelect.value?.focus()
   },
 )
@@ -174,7 +156,7 @@ onUnmounted(() => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="stop-panel-title"
-        class="ml-auto flex h-full w-full max-w-md flex-col bg-app-bg p-6 shadow-xl"
+        class="ml-auto flex h-full w-full max-w-md flex-col bg-[#F6F3EE] p-6 shadow-xl"
       >
         <div class="flex items-start justify-between gap-4">
           <div>
@@ -187,34 +169,36 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <AppButton
-            variant="ghost"
-            size="icon"
+          <button
+            type="button"
             aria-label="Закрыть панель"
             :disabled="pending"
+            class="text-2xl text-neutral-500 disabled:opacity-40"
             @click="$emit('close')"
           >
             ×
-          </AppButton>
+          </button>
         </div>
 
         <form class="mt-8 flex flex-1 flex-col" @submit.prevent="submitForm">
           <label>
-            <span class="text-sm font-medium"> Причина </span>
+            <span class="text-sm font-medium">Причина</span>
 
-            <AppSelect
+            <select
               ref="reasonSelect"
+              v-model="reason"
               v-bind="reasonAttrs"
-              :model-value="reason ?? null"
-              :options="STOP_REASON_OPTIONS"
-              placeholder="Выберите причину"
-              placeholder-disabled
-              :invalid="Boolean(errors.reason)"
-              class="mt-2"
-              @update:model-value="handleReasonChange"
-            />
+              class="mt-2 w-full rounded-lg border bg-white px-3 py-2"
+              :class="errors.reason ? 'border-red-500' : 'border-neutral-300'"
+            >
+              <option :value="undefined" disabled>Выберите причину</option>
 
-            <span v-if="errors.reason" class="mt-1 block text-sm text-red-600">
+              <option v-for="option in STOP_REASON_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+
+            <span v-if="errors.reason" class="mt-1 text-sm text-red-600">
               {{ errors.reason }}
             </span>
           </label>
@@ -242,22 +226,24 @@ onUnmounted(() => {
               :step="STOP_TIME_STEP_SECONDS"
               :min="minStopTime"
               :max="maxStopTime"
-              :class="[
-                'mt-3 w-full rounded-lg border bg-white px-3 py-2',
-                'focus:border-brand focus:outline-none',
-                'focus:ring-2 focus:ring-brand/20',
-                errors.until ? 'border-red-500' : 'border-neutral-300',
-              ]"
+              class="mt-3 w-full rounded-lg border bg-white px-3 py-2"
+              :class="errors.until ? 'border-red-500' : 'border-neutral-300'"
             />
 
-            <span v-if="errors.until" class="mt-1 block text-sm text-red-600">
+            <span v-if="errors.until" class="mt-1 text-sm text-red-600">
               {{ errors.until }}
             </span>
           </fieldset>
 
-          <AppButton type="submit" size="lg" class="mt-auto w-full" :loading="pending">
+          <button
+            type="submit"
+            :disabled="pending"
+            class="mt-auto flex items-center justify-center gap-2 rounded-lg bg-[#C6462F] px-4 py-3 font-medium text-white disabled:opacity-60"
+          >
+            <span v-if="pending" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+
             {{ pending ? 'Сохраняем...' : 'Сохранить' }}
-          </AppButton>
+          </button>
         </form>
       </div>
     </div>

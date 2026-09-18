@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
+import { stopItemSchema } from '#shared/schemas/stop-item'
 import { getMenuItem, stopMenuItem } from '#server/utils/menu-store'
 import { simulateMutation } from '#server/utils/simulate-mutation'
-import { stopItemSchema } from '#shared/schemas/stop-item'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { MenuItem } from '#shared/types/menu'
-import { SHOP_LABELS, STOP_REASON_LABELS } from '../model/presentation'
-import AppBadge from '~/shared/ui/AppBadge.vue'
-import AppButton from '~/shared/ui/AppButton.vue'
+import { getShopLabel, getStopReasonLabel } from '../model/presentation'
 
 defineProps<{
   items: MenuItem[]
@@ -19,9 +17,7 @@ function formatUntil(until: string | null): string {
     return 'До конца смены'
   }
 
-  return new Date(until).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
+  return new Date(until).toLocaleTimeString('ru-RU', {
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -34,15 +30,10 @@ function formatUntil(until: string | null): string {
       <thead class="border-b border-neutral-200 bg-neutral-50">
         <tr>
           <th class="p-4 font-medium">Позиция</th>
-
           <th class="p-4 font-medium">Цех</th>
-
           <th class="p-4 font-medium">Остаток</th>
-
           <th class="p-4 font-medium">Статус</th>
-
           <th class="p-4 font-medium">Причина / срок</th>
-
           <th class="p-4 font-medium">Действия</th>
         </tr>
       </thead>
@@ -50,14 +41,7 @@ function formatUntil(until: string | null): string {
       <tbody>
         <tr
           v-for="item in items"
-          :key="`${item.id}-${item.status.kind}`"
-          v-motion
-          :initial="{
-            opacity: 0.6,
-          }"
-          :enter="{
-            opacity: 1,
-          }"
+          :key="item.id"
           class="border-b border-neutral-100 transition last:border-b-0"
           :class="{
             'bg-neutral-50 opacity-65': item.status.kind === 'stopped',
@@ -68,54 +52,62 @@ function formatUntil(until: string | null): string {
           </td>
 
           <td class="p-4">
-            {{ SHOP_LABELS[item.shop] }}
+            {{ getShopLabel(item.shop) }}
           </td>
 
           <td class="p-4">{{ item.stock }} шт.</td>
 
           <td class="p-4">
             <div class="flex items-center gap-2">
-              <AppBadge v-if="item.status.kind === 'available'" variant="success"> В продаже </AppBadge>
+              <span
+                v-if="item.status.kind === 'available'"
+                class="rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
+              >
+                В продаже
+              </span>
 
-              <AppBadge v-else variant="danger"> Стоп </AppBadge>
+              <span v-else class="rounded-full bg-red-100 px-3 py-1 text-sm text-red-800"> Стоп </span>
 
-              <AppBadge v-if="savingIds.includes(item.id)" variant="neutral"> сохраняется... </AppBadge>
+              <span v-if="savingIds.includes(item.id)" class="text-xs text-neutral-500"> сохраняется... </span>
             </div>
           </td>
 
           <td class="p-4">
-            <AppBadge v-if="item.status.kind === 'stopped'" variant="neutral">
-              {{ STOP_REASON_LABELS[item.status.reason] }}
-              ·
-              {{ formatUntil(item.status.until) }}
-            </AppBadge>
+            <template v-if="item.status.kind === 'stopped'">
+              <div>
+                {{ getStopReasonLabel(item.status.reason) }}
+              </div>
 
-            <span v-else class="text-neutral-400"> - </span>
+              <div class="mt-1 text-sm text-neutral-500">
+                {{ formatUntil(item.status.until) }}
+              </div>
+            </template>
+
+            <span v-else class="text-neutral-400">-</span>
           </td>
 
           <td class="p-4">
             <div class="flex gap-2">
-              <AppButton
-                variant="outline"
-                size="sm"
-                :disabled="savingIds.includes(item.id)"
+              <button
+                type="button"
+                class="rounded-lg border border-[#C6462F] px-3 py-2 text-sm font-medium text-[#C6462F] transition hover:bg-[#C6462F] hover:text-white"
                 @click="$emit('edit', item)"
               >
                 {{ item.status.kind === 'stopped' ? 'Изменить' : 'В стоп-лист' }}
-              </AppButton>
+              </button>
 
               <span
                 v-if="item.status.kind === 'stopped'"
                 :title="item.stock === 0 ? 'Нельзя вернуть позицию при нулевом остатке' : ''"
               >
-                <AppButton
-                  variant="dark"
-                  size="sm"
+                <button
+                  type="button"
                   :disabled="item.stock === 0 || savingIds.includes(item.id)"
+                  class="rounded-lg bg-[#171512] px-3 py-2 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-30"
                   @click="$emit('resume', item)"
                 >
                   Вернуть в продажу
-                </AppButton>
+                </button>
               </span>
             </div>
           </td>
