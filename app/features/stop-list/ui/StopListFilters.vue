@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { isMenuStatus, isShop } from '#shared/constants/menu'
 import type { Shop } from '#shared/types/menu'
+import AppSelect from '~/shared/ui/AppSelect.vue'
 import type { MenuFilters, StatusFilter } from '../model/filters'
 import { MENU_STATUS_OPTIONS, SHOP_OPTIONS } from '../model/presentation'
 
@@ -12,16 +14,12 @@ const emit = defineEmits<{
   statusChange: [value: StatusFilter]
 }>()
 
-function handleShopChange(event: Event): void {
-  const value = (event.target as HTMLSelectElement).value
-
-  emit('shopChange', value === '' ? null : (value as Shop))
+function handleShopChange(value: string | null): void {
+  emit('shopChange', isShop(value) ? value : null)
 }
 
-function handleStatusChange(event: Event): void {
-  const value = (event.target as HTMLSelectElement).value
-
-  emit('statusChange', value === '' ? null : (value as Exclude<StatusFilter, null>))
+function handleStatusChange(value: string | null): void {
+  emit('statusChange', isMenuStatus(value) ? value : null)
 }
 </script>
 
@@ -30,33 +28,25 @@ function handleStatusChange(event: Event): void {
     <label class="flex flex-col gap-2">
       <span class="text-sm font-medium">Цех</span>
 
-      <select
-        :value="filters.shop ?? ''"
-        class="min-w-48 rounded-lg border border-neutral-300 bg-white px-3 py-2"
-        @change="handleShopChange"
-      >
-        <option value="">Все цеха</option>
-
-        <option v-for="option in SHOP_OPTIONS" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
+      <AppSelect
+        :model-value="filters.shop"
+        :options="SHOP_OPTIONS"
+        placeholder="Все цеха"
+        class="min-w-48"
+        @update:model-value="handleShopChange"
+      />
     </label>
 
     <label class="flex flex-col gap-2">
       <span class="text-sm font-medium">Статус</span>
 
-      <select
-        :value="filters.status ?? ''"
-        class="min-w-48 rounded-lg border border-neutral-300 bg-white px-3 py-2"
-        @change="handleStatusChange"
-      >
-        <option value="">Все статусы</option>
-
-        <option v-for="option in MENU_STATUS_OPTIONS" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
+      <AppSelect
+        :model-value="filters.status"
+        :options="MENU_STATUS_OPTIONS"
+        placeholder="Все статусы"
+        class="min-w-48"
+        @update:model-value="handleStatusChange"
+      />
     </label>
   </div>
 </template>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { MenuItem } from '#shared/types/menu'
+import AppBadge from '~/shared/ui/AppBadge.vue'
+import AppButton from '~/shared/ui/AppButton.vue'
 import { getShopLabel, getStopReasonLabel } from '../model/presentation'
 
 defineProps<{
@@ -59,14 +61,9 @@ function formatUntil(until: string | null): string {
 
           <td class="p-4">
             <div class="flex items-center gap-2">
-              <span
-                v-if="item.status.kind === 'available'"
-                class="rounded-full bg-green-100 px-3 py-1 text-sm text-green-800"
-              >
-                В продаже
-              </span>
+              <AppBadge v-if="item.status.kind === 'available'" variant="success"> В продаже </AppBadge>
 
-              <span v-else class="rounded-full bg-red-100 px-3 py-1 text-sm text-red-800"> Стоп </span>
+              <AppBadge v-else variant="danger"> Стоп </AppBadge>
 
               <span v-if="savingIds.includes(item.id)" class="text-xs text-neutral-500"> сохраняется... </span>
             </div>
@@ -74,13 +71,9 @@ function formatUntil(until: string | null): string {
 
           <td class="p-4">
             <template v-if="item.status.kind === 'stopped'">
-              <div>
-                {{ getStopReasonLabel(item.status.reason) }}
-              </div>
-
-              <div class="mt-1 text-sm text-neutral-500">
-                {{ formatUntil(item.status.until) }}
-              </div>
+              <AppBadge variant="neutral">
+                {{ getStopReasonLabel(item.status.reason) }} · {{ formatUntil(item.status.until) }}
+              </AppBadge>
             </template>
 
             <span v-else class="text-neutral-400">-</span>
@@ -88,26 +81,27 @@ function formatUntil(until: string | null): string {
 
           <td class="p-4">
             <div class="flex gap-2">
-              <button
-                type="button"
-                class="rounded-lg border border-[#C6462F] px-3 py-2 text-sm font-medium text-[#C6462F] transition hover:bg-[#C6462F] hover:text-white"
+              <AppButton
+                variant="outline"
+                size="sm"
+                :disabled="savingIds.includes(item.id)"
                 @click="$emit('edit', item)"
               >
                 {{ item.status.kind === 'stopped' ? 'Изменить' : 'В стоп-лист' }}
-              </button>
+              </AppButton>
 
               <span
                 v-if="item.status.kind === 'stopped'"
                 :title="item.stock === 0 ? 'Нельзя вернуть позицию при нулевом остатке' : ''"
               >
-                <button
-                  type="button"
+                <AppButton
+                  variant="dark"
+                  size="sm"
                   :disabled="item.stock === 0 || savingIds.includes(item.id)"
-                  class="rounded-lg bg-[#171512] px-3 py-2 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-30"
                   @click="$emit('resume', item)"
                 >
                   Вернуть в продажу
-                </button>
+                </AppButton>
               </span>
             </div>
           </td>

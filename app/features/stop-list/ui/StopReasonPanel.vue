@@ -2,9 +2,12 @@
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { isStopReason } from '#shared/constants/menu'
 import { STOP_MAX_DURATION_MS, STOP_TIME_STEP_MINUTES, STOP_TIME_STEP_SECONDS } from '#shared/constants/stop-list'
 import { stopItemSchema } from '#shared/schemas/stop-item'
 import type { MenuItem, StopItemPayload } from '#shared/types/menu'
+import AppButton from '~/shared/ui/AppButton.vue'
+import AppSelect from '~/shared/ui/AppSelect.vue'
 import { STOP_REASON_OPTIONS } from '../model/presentation'
 
 const props = defineProps<{
@@ -38,7 +41,7 @@ const [until, untilAttrs] = defineField('until', {
   validateOnModelUpdate: false,
 })
 
-const reasonSelect = ref<HTMLSelectElement | null>(null)
+const reasonSelect = ref<InstanceType<typeof AppSelect> | null>(null)
 const openedAt = ref(Date.now())
 
 function toLocalDateTime(iso: string): string {
@@ -78,6 +81,10 @@ function setUntilMode(mode: 'shift' | 'time'): void {
   if (until.value === null) {
     setFieldValue('until', minStopTime.value)
   }
+}
+
+function handleReasonChange(value: string | null): void {
+  setFieldValue('reason', isStopReason(value) ? value : undefined)
 }
 
 const submitForm = handleSubmit((values) => {
@@ -164,39 +171,38 @@ onUnmounted(() => {
               {{ item.status.kind === 'stopped' ? 'Изменить стоп' : 'Поставить в стоп' }}
             </h2>
 
-            <p class="mt-1 block text-sm text-red-600">
+            <p class="mt-1 block text-sm text-[#171512]/60">
               {{ item.title }}
             </p>
           </div>
 
-          <button
-            type="button"
+          <AppButton
+            variant="ghost"
+            size="icon"
             aria-label="Закрыть панель"
             :disabled="pending"
-            class="text-2xl text-neutral-500 disabled:opacity-40"
             @click="$emit('close')"
           >
             ×
-          </button>
+          </AppButton>
         </div>
 
         <form class="mt-8 flex flex-1 flex-col" @submit.prevent="submitForm">
           <label>
             <span class="text-sm font-medium">Причина</span>
 
-            <select
-              ref="reasonSelect"
-              v-model="reason"
-              v-bind="reasonAttrs"
-              class="mt-2 w-full rounded-lg border bg-white px-3 py-2"
-              :class="errors.reason ? 'border-red-500' : 'border-neutral-300'"
-            >
-              <option :value="undefined" disabled>Выберите причину</option>
-
-              <option v-for="option in STOP_REASON_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
+            <div class="mt-2">
+              <AppSelect
+                ref="reasonSelect"
+                v-bind="reasonAttrs"
+                :model-value="reason ?? null"
+                :options="STOP_REASON_OPTIONS"
+                :invalid="Boolean(errors.reason)"
+                placeholder="Выберите причину"
+                placeholder-disabled
+                @update:model-value="handleReasonChange"
+              />
+            </div>
 
             <span v-if="errors.reason" class="mt-1 text-sm text-red-600">
               {{ errors.reason }}
@@ -235,15 +241,9 @@ onUnmounted(() => {
             </span>
           </fieldset>
 
-          <button
-            type="submit"
-            :disabled="pending"
-            class="mt-auto flex items-center justify-center gap-2 rounded-lg bg-[#C6462F] px-4 py-3 font-medium text-white disabled:opacity-60"
-          >
-            <span v-if="pending" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-
+          <AppButton type="submit" variant="primary" size="lg" :loading="pending" class="mt-auto w-full">
             {{ pending ? 'Сохраняем...' : 'Сохранить' }}
-          </button>
+          </AppButton>
         </form>
       </div>
     </div>
