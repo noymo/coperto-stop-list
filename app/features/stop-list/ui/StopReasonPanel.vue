@@ -14,7 +14,6 @@ const props = defineProps<{
   item: MenuItem | null
   open: boolean
   pending: boolean
-  draft?: StopItemPayload | null
 }>()
 
 const emit = defineEmits<{
@@ -43,6 +42,8 @@ const [until, untilAttrs] = defineField('until', {
 })
 
 const reasonSelect = ref<InstanceType<typeof AppSelect> | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
+const previouslyFocusedElement = ref<HTMLElement | null>(null)
 const openedAt = ref(Date.now())
 
 function toLocalDateTime(iso: string): string {
@@ -97,31 +98,101 @@ const submitForm = handleSubmit((values) => {
   emit('submit', payload)
 })
 
-function handleEscape(event: KeyboardEvent): void {
-  if (event.key === 'Escape' && props.open && !props.pending) {
-    emit('close')
+function getFocusableElements(): HTMLElement[] {
+  if (!panelRef.value) {
+    return []
+  }
+
+  const selector = [
+    'button:not([disabled])',
+    'select:not([disabled])',
+    'input:not([disabled])',
+    'a[href]',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(', ')
+
+  return Array.from(panelRef.value.querySelectorAll<HTMLElement>(selector))
+}
+
+function restorePreviousFocus(): void {
+  const previous = previouslyFocusedElement.value
+
+  if (previous?.isConnected) {
+    previous.focus()
+  } else {
+    document.querySelector<HTMLElement>('[data-stop-list-focus-fallback]')?.focus()
+  }
+
+  previouslyFocusedElement.value = null
+}
+
+function handlePanelKeydown(event: KeyboardEvent): void {
+  if (!props.open) {
+    return
+  }
+
+  if (event.key === 'Escape') {
+    if (!props.pending) {
+      emit('close')
+    }
+
+    return
+  }
+
+  if (event.key !== 'Tab') {
+    return
+  }
+
+  const focusableElements = getFocusableElements()
+
+  if (focusableElements.length === 0) {
+    event.preventDefault()
+    panelRef.value?.focus()
+    return
+  }
+
+  const first = focusableElements[0]
+  const last = focusableElements[focusableElements.length - 1]
+  const activeElement = document.activeElement
+  const isInsidePanel = activeElement instanceof Node && panelRef.value?.contains(activeElement)
+
+  if (event.shiftKey && (!isInsidePanel || activeElement === first)) {
+    event.preventDefault()
+    last?.focus()
+    return
+  }
+
+  if (!event.shiftKey && (!isInsidePanel || activeElement === last)) {
+    event.preventDefault()
+    first?.focus()
   }
 }
 
 watch(
-  () => [props.open, props.item?.id, props.draft?.reason, props.draft?.until] as const,
-  async ([open, itemId]) => {
+  () => [props.open, props.item?.id] as const,
+  async ([open, itemId], [wasOpen]) => {
+    if (!open) {
+      if (wasOpen) {
+        await nextTick()
+        restorePreviousFocus()
+      }
+
+      return
+    }
+
     const item = props.item
 
-    if (!open || !itemId || !item) {
+    if (!itemId || !item) {
       return
+    }
+
+    if (!wasOpen) {
+      previouslyFocusedElement.value = document.activeElement instanceof HTMLElement ? document.activeElement : null
     }
 
     openedAt.value = Date.now()
 
-    if (props.draft) {
-      resetForm({
-        values: {
-          reason: props.draft.reason,
-          until: props.draft.until ? toLocalDateTime(props.draft.until) : null,
-        },
-      })
-    } else if (item.status.kind === 'stopped') {
+    if (item.status.kind === 'stopped') {
       resetForm({
         values: {
           reason: item.status.reason,
@@ -143,11 +214,11 @@ watch(
 )
 
 onMounted(() => {
-  window.addEventListener('keydown', handleEscape)
+  window.addEventListener('keydown', handlePanelKeydown)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleEscape)
+  window.removeEventListener('keydown', handlePanelKeydown)
 })
 </script>
 
@@ -155,6 +226,7 @@ onUnmounted(() => {
   <Teleport to="body">
     <div v-if="open && item" class="fixed inset-0 z-40 bg-black/30" @click.self="!pending && $emit('close')">
       <div
+        ref="panelRef"
         v-motion
         :initial="{
           opacity: 0,
@@ -168,6 +240,7 @@ onUnmounted(() => {
           opacity: 0,
           x: 80,
         }"
+        tabindex="-1"
         role="dialog"
         aria-modal="true"
         aria-labelledby="stop-panel-title"
